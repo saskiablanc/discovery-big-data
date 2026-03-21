@@ -30,4 +30,10 @@ public class PersonController {
     public SseEmitter stream() {
         return personService.subscribe();
     }
+
+    // POST /api/persons/notify — appelé par le Consumer Kafka
+    @PostMapping("/notify")
+    public void notify(@RequestBody Person person) {
+        personService.notifyNewPerson(person);
+    }
 }
