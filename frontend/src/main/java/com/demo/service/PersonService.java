@@ -1,9 +1,12 @@
 package com.demo.service;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -14,19 +17,19 @@ import com.demo.repository.PersonRepository;
 public class PersonService {
 
     private final PersonRepository personRepository;
-
-    // Liste des clients SSE connectés
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     public PersonService(PersonRepository personRepository) {
         this.personRepository = personRepository;
     }
 
-    public List<Person> findAll() {
-        return personRepository.findAll();
+    // Retourne une page de personnes (triées par id desc = les plus récentes en premier)
+    public Page<Person> findPage(int page, int size) {
+        return personRepository.findAll(
+            PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"))
+        );
     }
 
-    // Abonner un nouveau client SSE
     public SseEmitter subscribe() {
         SseEmitter emitter = new SseEmitter(Long.MAX_VALUE);
         emitters.add(emitter);
@@ -36,14 +39,15 @@ public class PersonService {
         return emitter;
     }
 
-    // Appelé par le Consumer Kafka (ou manuellement) pour notifier tous les clients
     public void notifyNewPerson(Person person) {
+        List<SseEmitter> dead = new ArrayList<>();
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event().data(person));
-            } catch (IOException e) {
-                emitters.remove(emitter);
+            } catch (Exception e) {
+                dead.add(emitter);
             }
         }
+        emitters.removeAll(dead);
     }
 }

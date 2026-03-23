@@ -1,5 +1,11 @@
 const API_URL = "http://localhost:8082/api/persons";
 const SSE_URL = "http://localhost:8082/api/persons/stream";
+const PAGE_SIZE = 50;
+
+let currentPage = 0;
+let totalElements = 0;
+let loading = false;
+let allLoaded = false;
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -20,36 +26,65 @@ function createCard(person, index) {
   const card = document.createElement("div");
   card.className = "card";
   card.dataset.id = person.id;
-  card.style.animationDelay = `${index * 40}ms`;
+  card.style.animationDelay = `${index * 20}ms`;
   card.innerHTML = `
-        <img src="${person.pictureUrl}" alt="${person.firstName}"
-             onerror="this.src='https://randomuser.me/api/portraits/lego/1.jpg'">
-        <div class="name">${person.firstName} ${person.lastName}</div>
-        <div class="meta">${person.nationality}</div>
-        <div style="display:flex;gap:6px;align-items:center;justify-content:center">
-            <span class="age-badge">${person.age} ans</span>
-        </div>
-    `;
+    <img src="${person.pictureUrl}" alt="${person.firstName}"
+         onerror="this.src='https://randomuser.me/api/portraits/lego/1.jpg'">
+    <div class="name">${person.firstName} ${person.lastName}</div>
+    <div class="meta">${person.nationality}</div>
+    <div style="display:flex;gap:6px;align-items:center;justify-content:center">
+      <span class="age-badge">${person.age} ans</span>
+    </div>
+  `;
   return card;
 }
 
-async function loadPersons() {
-  const grid = document.getElementById("grid");
+function updateCount() {
+  const displayed = document
+    .getElementById("grid")
+    .querySelectorAll(".card").length;
   const count = document.getElementById("count");
+  count.textContent =
+    totalElements > 0
+      ? `${displayed} / ${totalElements} personne${totalElements !== 1 ? "s" : ""}`
+      : `${displayed} personne${displayed !== 1 ? "s" : ""}`;
+}
+
+async function loadPage() {
+  if (loading || allLoaded) return;
+  loading = true;
+
+  const grid = document.getElementById("grid");
+
   try {
-    const res = await fetch(API_URL);
-    const persons = await res.json();
-    grid.innerHTML = "";
-    count.textContent = `${persons.length} personne${persons.length !== 1 ? "s" : ""}`;
-    if (persons.length === 0) {
+    const res = await fetch(`${API_URL}?page=${currentPage}&size=${PAGE_SIZE}`);
+    const data = await res.json();
+
+    totalElements = data.totalElements;
+
+    const empty = grid.querySelector(".empty");
+    if (empty) empty.remove();
+
+    if (data.content.length === 0 && currentPage === 0) {
       grid.innerHTML = '<div class="empty">Aucune personne en base.</div>';
+      loading = false;
       return;
     }
-    persons.forEach((p, i) => grid.appendChild(createCard(p, i)));
+
+    data.content.forEach((p, i) => grid.appendChild(createCard(p, i)));
+    updateCount();
+
+    currentPage++;
+    if (currentPage >= data.totalPages) allLoaded = true;
   } catch (e) {
-    grid.innerHTML = '<div class="empty">Impossible de contacter l\'API.</div>';
+    if (currentPage === 0) {
+      grid.innerHTML =
+        '<div class="empty">Impossible de contacter l\'API.</div>';
+    }
     console.error(e);
   }
+
+  loading = false;
 }
 
 function startSSE() {
@@ -57,17 +92,27 @@ function startSSE() {
   es.onmessage = (event) => {
     const person = JSON.parse(event.data);
     const grid = document.getElementById("grid");
-    const count = document.getElementById("count");
     const empty = grid.querySelector(".empty");
     if (empty) empty.remove();
-    const card = createCard(person, 0);
-    card.style.animationDelay = "0ms";
-    grid.prepend(card);
-    const current = parseInt(count.textContent) || 0;
-    count.textContent = `${current + 1} personne${current + 1 !== 1 ? "s" : ""}`;
+
+    // Prepend uniquement si pas déjà dans le DOM (évite les doublons)
+    if (!grid.querySelector(`[data-id="${person.id}"]`)) {
+      const card = createCard(person, 0);
+      card.style.animationDelay = "0ms";
+      grid.prepend(card);
+      totalElements++;
+      updateCount();
+    }
   };
   es.onerror = () => console.warn("SSE déconnecté, reconnexion automatique...");
 }
 
-loadPersons();
+// Scroll infini
+window.addEventListener("scroll", () => {
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+    loadPage();
+  }
+});
+
+loadPage();
 startSSE();

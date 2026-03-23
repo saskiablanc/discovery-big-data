@@ -1,12 +1,18 @@
 package com.demo.controller;
 
-import com.demo.model.Person;
-import com.demo.service.PersonService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
+import com.demo.model.Person;
+import com.demo.service.PersonService;
 
 @RestController
 @RequestMapping("/api/persons")
@@ -19,10 +25,12 @@ public class PersonController {
         this.personService = personService;
     }
 
-    // GET /api/persons — liste complète
+    // GET /api/persons?page=0&size=50
     @GetMapping
-    public List<Person> getAll() {
-        return personService.findAll();
+    public Page<Person> getAll(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "50") int size) {
+        return personService.findPage(page, size);
     }
 
     // GET /api/persons/stream — flux SSE temps réel
