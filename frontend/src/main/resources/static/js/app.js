@@ -16,18 +16,11 @@ document.addEventListener("DOMContentLoaded", () => {
     savedTheme === "dark" ? "☀" : "☾";
 });
 
-const ageGroupColor = {
-  jeune: "#c8f542",
-  adulte: "#42c8f5",
-  senior: "#f5a742",
-};
-
 function createCard(person, index) {
   const card = document.createElement("div");
   card.className = "card";
   card.dataset.id = person.id;
   card.style.animationDelay = `${index * 40}ms`;
-  const color = ageGroupColor[person.ageGroup] || "#888";
   card.innerHTML = `
         <img src="${person.pictureUrl}" alt="${person.firstName}"
              onerror="this.src='https://randomuser.me/api/portraits/lego/1.jpg'">
@@ -35,7 +28,6 @@ function createCard(person, index) {
         <div class="meta">${person.nationality}</div>
         <div style="display:flex;gap:6px;align-items:center;justify-content:center">
             <span class="age-badge">${person.age} ans</span>
-            <span class="age-badge" style="background:${color};color:#0f0f0f">${person.ageGroup}</span>
         </div>
     `;
   return card;

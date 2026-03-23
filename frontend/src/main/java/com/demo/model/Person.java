@@ -27,9 +27,6 @@ public class Person {
     @Column(name = "age")
     private int age;
 
-    @Column(name = "age_group")
-    private String ageGroup;
-
     @Column(name = "picture_url")
     private String pictureUrl;
 
@@ -47,9 +44,6 @@ public class Person {
 
     public int getAge()                          { return age; }
     public void setAge(int age)                  { this.age = age; }
-
-    public String getAgeGroup()                  { return ageGroup; }
-    public void setAgeGroup(String ageGroup)     { this.ageGroup = ageGroup; }
 
     public String getPictureUrl()                { return pictureUrl; }
     public void setPictureUrl(String pictureUrl) { this.pictureUrl = pictureUrl; }
