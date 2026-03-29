@@ -6,6 +6,7 @@ let currentPage = 0;
 let totalElements = 0;
 let loading = false;
 let allLoaded = false;
+let firstPageLoaded = false;
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -66,7 +67,7 @@ async function loadPage() {
     if (empty) empty.remove();
 
     if (data.content.length === 0 && currentPage === 0) {
-      grid.innerHTML = '<div class="empty">Aucune personne en base.</div>';
+      grid.innerHTML = '<div class="empty">En attente de données...</div>';
       loading = false;
       return;
     }
@@ -75,6 +76,7 @@ async function loadPage() {
     updateCount();
 
     currentPage++;
+    firstPageLoaded = true;
     if (currentPage >= data.totalPages) allLoaded = true;
   } catch (e) {
     if (currentPage === 0) {
@@ -90,18 +92,12 @@ async function loadPage() {
 function startSSE() {
   const es = new EventSource(SSE_URL);
   es.onmessage = (event) => {
-    const person = JSON.parse(event.data);
-    const grid = document.getElementById("grid");
-    const empty = grid.querySelector(".empty");
-    if (empty) empty.remove();
+    const data = JSON.parse(event.data);
+    totalElements += data.count;
+    updateCount();
 
-    // Prepend uniquement si pas déjà dans le DOM (évite les doublons)
-    if (!grid.querySelector(`[data-id="${person.id}"]`)) {
-      const card = createCard(person, 0);
-      card.style.animationDelay = "0ms";
-      grid.prepend(card);
-      totalElements++;
-      updateCount();
+    if (!firstPageLoaded) {
+      loadPage();
     }
   };
   es.onerror = () => console.warn("SSE déconnecté, reconnexion automatique...");

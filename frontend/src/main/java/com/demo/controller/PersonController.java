@@ -1,5 +1,7 @@
 package com.demo.controller;
 
+import java.util.Map;
+
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -25,7 +27,6 @@ public class PersonController {
         this.personService = personService;
     }
 
-    // GET /api/persons?page=0&size=50
     @GetMapping
     public Page<Person> getAll(
             @RequestParam(defaultValue = "0")  int page,
@@ -33,15 +34,13 @@ public class PersonController {
         return personService.findPage(page, size);
     }
 
-    // GET /api/persons/stream — flux SSE temps réel
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream() {
         return personService.subscribe();
     }
 
-    // POST /api/persons/notify — appelé par le Consumer Kafka
     @PostMapping("/notify")
-    public void notify(@RequestBody Person person) {
-        personService.notifyNewPerson(person);
+    public void notify(@RequestBody Map<String, Long> body) {
+        personService.notifyBatchCount(body.get("count"));
     }
 }

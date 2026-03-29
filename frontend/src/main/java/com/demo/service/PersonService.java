@@ -23,7 +23,6 @@ public class PersonService {
         this.personRepository = personRepository;
     }
 
-    // Retourne une page de personnes (triées par id desc = les plus récentes en premier)
     public Page<Person> findPage(int page, int size) {
         return personRepository.findAll(
             PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"))
@@ -39,11 +38,11 @@ public class PersonService {
         return emitter;
     }
 
-    public void notifyNewPerson(Person person) {
+    public void notifyBatchCount(long count) {
         List<SseEmitter> dead = new ArrayList<>();
         for (SseEmitter emitter : emitters) {
             try {
-                emitter.send(SseEmitter.event().data(person));
+                emitter.send(SseEmitter.event().data("{\"count\":" + count + "}"));
             } catch (Exception e) {
                 dead.add(emitter);
             }
