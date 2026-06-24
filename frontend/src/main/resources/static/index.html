@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>People — Kafka Spark Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="header-inner">
+        <div class="header-top">
+          <span class="tag">Kafka × Spark</span>
+          <button
+            id="theme-btn"
+            onclick="toggleTheme()"
+            title="Changer de thème"
+          >
+            ☀
+          </button>
+        </div>
+        <h1>People</h1>
+        <p class="subtitle">
+          Personnes générées et insérées en temps réel via le pipeline de
+          streaming.
+        </p>
+      </div>
+    </header>
+
+    <main>
+      <div class="toolbar">
+        <span id="count">— personnes</span>
+        <span id="live-dot" class="live-dot">● live</span>
+      </div>
+      <div id="grid" class="grid"></div>
+    </main>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>
