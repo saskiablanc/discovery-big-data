@@ -6,7 +6,7 @@ English version (French version below 🇫🇷)
 
 ## 🇬🇧 About
 
-Discovery Big Data is a hands-on project for exploring the big data ecosystem through Apache Kafka and Apache Spark. It implements a real-time data pipeline: random user profiles are fetched from an external API, streamed through Kafka, processed with Spark, stored in PostgreSQL, and pushed live to a web interface.
+Discovery Big Data is a hands-on project for exploring the big data ecosystem through Apache Kafka and Apache Spark. It implements a real-time data pipeline: synthetic user profiles are generated locally with DataFaker, streamed through Kafka, processed with Spark, stored in PostgreSQL, and pushed live to a web interface.
 
 The project was built by a team of three.
 
@@ -15,16 +15,16 @@ The project was built by a team of three.
 The system is a real-time pipeline split across two independent Maven projects that communicate through PostgreSQL and HTTP.
 
 ```
-randomuser.me -> [PersonGenerator] -> Kafka -> [PersonConsumer] -> PostgreSQL -> [Spring Boot API] -> Frontend
-                 \________________ pipeline ________________/                    \_____ frontend _____/
+DataFaker -> [PersonGenerator] -> Kafka -> [PersonConsumer] -> PostgreSQL -> [Spring Boot API] -> Frontend
+             \________________ pipeline ________________/                    \_____ frontend _____/
 ```
 
 Both components share the PostgreSQL database `kafkaspark` as their junction point, plus an HTTP call from the consumer to the API for real-time notifications.
 
-| Folder      | Role                                        | Stack                  |
-| ----------- | ------------------------------------------- | ---------------------- |
-| `pipeline/` | Kafka producer and Spark streaming consumer | Java, Spark, Kafka     |
-| `frontend/` | Spring Boot REST API and web interface      | Java, Spring Boot, JPA |
+| Folder | Role | Stack |
+| --- | --- | --- |
+| `pipeline/` | Kafka producer and Spark streaming consumer | Java, Spark, Kafka |
+| `frontend/` | Spring Boot REST API and web interface | Java, Spring Boot, JPA |
 
 ## Components
 
@@ -34,9 +34,10 @@ A single Maven project containing two Spark jobs that share the `PersonEvent` mo
 
 **PersonGenerator (producer)**
 
-- Fetches people from the randomuser.me API through asynchronous HTTP calls (10 seeds, organized in spaced waves)
-- Parses them into `PersonEvent` objects (first name, last name, nationality, age, photo URL)
-- Distributes the list as an RDD with `sc.parallelize`, then applies distributed Spark transformations: nationality normalization (title case) and deduplication on `firstName|lastName`
+- Generates 1 million synthetic people with DataFaker
+- Distributes them as an RDD with `sc.parallelize` (20 partitions)
+- Builds `PersonEvent` objects (first name, last name, nationality, age, photo URL)
+- Applies distributed Spark transformations: nationality normalization (title case) and deduplication on `firstName|lastName`
 - Writes the result to the Kafka topic `persons` through `foreachPartition`, creating one `KafkaProducer` per partition rather than per row
 
 **PersonConsumer (consumer, Spark Structured Streaming)**
@@ -52,10 +53,10 @@ Kafka acts as the message bus between the two jobs, decoupling the generator fro
 
 A Spring Boot application (port 8082) connected to `kafkaspark` through Spring Data JPA, exposing three endpoints.
 
-| Endpoint                   | Role                                                    |
-| -------------------------- | ------------------------------------------------------- |
-| `GET /api/persons`         | Returns the list of people as JSON (initial load)       |
-| `GET /api/persons/stream`  | SSE stream: pushes new people in real time              |
+| Endpoint | Role |
+| --- | --- |
+| `GET /api/persons` | Returns the list of people as JSON (initial load) |
+| `GET /api/persons/stream` | SSE stream: pushes new people in real time |
 | `POST /api/persons/notify` | Received from the Spark consumer: triggers an SSE event |
 
 The web interface (vanilla HTML/CSS/JS, served statically) displays people as cards, supports light and dark mode (localStorage), loads existing records on startup through `GET /api/persons`, then subscribes to the SSE stream.
@@ -71,15 +72,15 @@ This is the key mechanism linking the two components:
 
 ## Tech stack
 
-| Layer       | Technologies                                      |
-| ----------- | ------------------------------------------------- |
-| Streaming   | Apache Kafka                                      |
-| Processing  | Apache Spark (RDD and Structured Streaming)       |
-| Storage     | PostgreSQL                                        |
-| API         | Spring Boot, Spring Data JPA                      |
-| Frontend    | HTML, CSS, vanilla JavaScript, Server-Sent Events |
-| Build       | Maven                                             |
-| Data source | randomuser.me API                                 |
+| Layer | Technologies |
+| --- | --- |
+| Streaming | Apache Kafka |
+| Processing | Apache Spark (RDD and Structured Streaming) |
+| Storage | PostgreSQL |
+| API | Spring Boot, Spring Data JPA |
+| Frontend | HTML, CSS, vanilla JavaScript, Server-Sent Events |
+| Build | Maven |
+| Data generation | DataFaker |
 
 ## Prerequisites
 
@@ -95,11 +96,11 @@ The pipeline expects a PostgreSQL database named `kafkaspark`, a user `postgres`
 
 ### 1. Install PostgreSQL
 
-| System           | Commands                                                              |
-| ---------------- | --------------------------------------------------------------------- |
+| System | Commands |
+| --- | --- |
 | macOS (Homebrew) | `brew install postgresql@16` then `brew services start postgresql@16` |
-| Debian / Ubuntu  | `sudo apt install postgresql` then `sudo systemctl start postgresql`  |
-| Windows          | Official installer from postgresql.org, then start the service        |
+| Debian / Ubuntu | `sudo apt install postgresql` then `sudo systemctl start postgresql` |
+| Windows | Official installer from postgresql.org, then start the service |
 
 ### 2. Create the `postgres` role
 
@@ -192,7 +193,7 @@ New people appear in the web interface as cards, in real time. A `reset.sh` scri
 
 ## 🇫🇷 À propos
 
-Discovery Big Data est un projet pour découvrir le monde de la big data à travers Apache Kafka et Apache Spark. Il met en place un pipeline de données temps réel : des profils d'utilisateurs aléatoires sont récupérés depuis une API externe, transportés via Kafka, traités avec Spark, stockés dans PostgreSQL, puis poussés en direct vers une interface web.
+Discovery Big Data est un projet pour découvrir le monde de la big data à travers Apache Kafka et Apache Spark. Il met en place un pipeline de données temps réel : des profils d'utilisateurs synthétiques sont générés localement avec DataFaker, transportés via Kafka, traités avec Spark, stockés dans PostgreSQL, puis poussés en direct vers une interface web.
 
 Le projet a été réalisé à trois.
 
@@ -201,16 +202,16 @@ Le projet a été réalisé à trois.
 Le système est un pipeline de données temps réel réparti sur deux projets Maven indépendants qui communiquent via PostgreSQL et HTTP.
 
 ```
-randomuser.me -> [PersonGenerator] -> Kafka -> [PersonConsumer] -> PostgreSQL -> [Spring Boot API] -> Frontend
-                 \________________ pipeline ________________/                    \_____ frontend _____/
+DataFaker -> [PersonGenerator] -> Kafka -> [PersonConsumer] -> PostgreSQL -> [Spring Boot API] -> Frontend
+             \________________ pipeline ________________/                    \_____ frontend _____/
 ```
 
 Les deux composants partagent la base PostgreSQL `kafkaspark` comme point de jonction, plus un appel HTTP du consommateur vers l'API pour les notifications temps réel.
 
-| Dossier     | Rôle                                             | Stack                  |
-| ----------- | ------------------------------------------------ | ---------------------- |
-| `pipeline/` | Producteur Kafka et consommateur Spark streaming | Java, Spark, Kafka     |
-| `frontend/` | API REST Spring Boot et interface web            | Java, Spring Boot, JPA |
+| Dossier | Rôle | Stack |
+| --- | --- | --- |
+| `pipeline/` | Producteur Kafka et consommateur Spark streaming | Java, Spark, Kafka |
+| `frontend/` | API REST Spring Boot et interface web | Java, Spring Boot, JPA |
 
 ## Composants
 
@@ -220,9 +221,10 @@ Un seul projet Maven contenant deux jobs Spark qui partagent le modèle `PersonE
 
 **PersonGenerator (producteur)**
 
-- Récupère des personnes depuis l'API randomuser.me via des appels HTTP asynchrones (10 seeds, organisés en vagues espacées)
-- Les parse en objets `PersonEvent` (prénom, nom, nationalité, âge, URL photo)
-- Distribue la liste en RDD avec `sc.parallelize`, puis applique des transformations Spark distribuées : normalisation de la nationalité (title case) et déduplication sur `firstName|lastName`
+- Génère 1 million de personnes synthétiques avec DataFaker
+- Les distribue en RDD avec `sc.parallelize` (20 partitions)
+- Construit des objets `PersonEvent` (prénom, nom, nationalité, âge, URL photo)
+- Applique des transformations Spark distribuées : normalisation de la nationalité (title case) et déduplication sur `firstName|lastName`
 - Envoie le résultat dans le topic Kafka `persons` via `foreachPartition`, en créant un seul `KafkaProducer` par partition plutôt que par ligne
 
 **PersonConsumer (consommateur, Spark Structured Streaming)**
@@ -238,10 +240,10 @@ Kafka joue le rôle de bus de messages entre les deux jobs, découplant le gén�
 
 Une application Spring Boot (port 8082) connectée à `kafkaspark` via Spring Data JPA, exposant trois endpoints.
 
-| Endpoint                   | Rôle                                                           |
-| -------------------------- | -------------------------------------------------------------- |
-| `GET /api/persons`         | Retourne la liste des personnes en JSON (chargement initial)   |
-| `GET /api/persons/stream`  | Flux SSE : pousse les nouvelles personnes en temps réel        |
+| Endpoint | Rôle |
+| --- | --- |
+| `GET /api/persons` | Retourne la liste des personnes en JSON (chargement initial) |
+| `GET /api/persons/stream` | Flux SSE : pousse les nouvelles personnes en temps réel |
 | `POST /api/persons/notify` | Reçu depuis le consommateur Spark : déclenche un événement SSE |
 
 L'interface web (HTML/CSS/JS vanilla, servie statiquement) affiche les personnes en cartes, supporte le mode clair et sombre (localStorage), charge l'existant au démarrage via `GET /api/persons`, puis s'abonne au flux SSE.
@@ -257,15 +259,15 @@ C'est le mécanisme clé qui relie les deux composants :
 
 ## Stack technique
 
-| Couche            | Technologies                                      |
-| ----------------- | ------------------------------------------------- |
-| Streaming         | Apache Kafka                                      |
-| Traitement        | Apache Spark (RDD et Structured Streaming)        |
-| Stockage          | PostgreSQL                                        |
-| API               | Spring Boot, Spring Data JPA                      |
-| Frontend          | HTML, CSS, JavaScript vanilla, Server-Sent Events |
-| Build             | Maven                                             |
-| Source de données | API randomuser.me                                 |
+| Couche | Technologies |
+| --- | --- |
+| Streaming | Apache Kafka |
+| Traitement | Apache Spark (RDD et Structured Streaming) |
+| Stockage | PostgreSQL |
+| API | Spring Boot, Spring Data JPA |
+| Frontend | HTML, CSS, JavaScript vanilla, Server-Sent Events |
+| Build | Maven |
+| Génération de données | DataFaker |
 
 ## Prérequis
 
@@ -281,11 +283,11 @@ Le pipeline attend une base PostgreSQL nommée `kafkaspark`, un utilisateur `pos
 
 ### 1. Installer PostgreSQL
 
-| Système          | Commandes                                                             |
-| ---------------- | --------------------------------------------------------------------- |
+| Système | Commandes |
+| --- | --- |
 | macOS (Homebrew) | `brew install postgresql@16` puis `brew services start postgresql@16` |
-| Debian / Ubuntu  | `sudo apt install postgresql` puis `sudo systemctl start postgresql`  |
-| Windows          | Installeur officiel sur postgresql.org, puis démarrer le service      |
+| Debian / Ubuntu | `sudo apt install postgresql` puis `sudo systemctl start postgresql` |
+| Windows | Installeur officiel sur postgresql.org, puis démarrer le service |
 
 ### 2. Créer le rôle `postgres`
 
