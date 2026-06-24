@@ -20,6 +20,12 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>net.datafaker</groupId>
+            <artifactId>datafaker</artifactId>
+            <version>2.4.4</version>
+        </dependency>
+
         <!-- Spark Core -->
         <dependency>
             <groupId>org.apache.spark</groupId>
