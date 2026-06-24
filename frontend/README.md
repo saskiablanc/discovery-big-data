@@ -1,5 +1,1 @@
-# R401_KAFKA_FRONTEND
-
-Steven BACHOV
-Saskia BLANC
-Lenny MONGRANDI
+# TO DO
